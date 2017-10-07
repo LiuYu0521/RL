@@ -211,7 +211,7 @@ TEST = 10
 
 def main():
     env = gym.make(ENV_NAME)
-    agent = DQN(env)
+    agent = DQN(env, output_graph = True, Nature_DQN = False)
 
     for episode in range(EPISODE):
         state = env.reset()
