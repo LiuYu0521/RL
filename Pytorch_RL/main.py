@@ -2,12 +2,13 @@ import gym
 from NATURE_DQN import NATURE_DQN
 
 ENV_NAME = 'CartPole-v0'
-EPISODE = 10000
-STEP_LIMIT = 5000
+EPISODE = 5000
+STEP_LIMIT = 500
 TEST = 10
 
 def main():
     env = gym.make(ENV_NAME)
+    env = env.unwrapped
     agent = NATURE_DQN(env)
 
     for episode in range(EPISODE):
@@ -16,7 +17,13 @@ def main():
         for step in range(STEP_LIMIT):
             a = agent.choose_action_train(s)
             s_, r, done, info = env.step(a)
-            agent.store_memory(s, a, r, s_, done)
+
+            x, x_dot, theta, theta_dot = s_
+            r1 = (env.x_threshold - abs(x)) / env.x_threshold - 0.8
+            r2 = (env.theta_threshold_radians - abs(theta)) / env.theta_threshold_radians - 0.5
+            r = r1+r2
+
+            agent.store_memory(s, a, r, s_)
             s = s_
             if done:
                 break
