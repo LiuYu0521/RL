@@ -4,6 +4,7 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import numpy as np
 import random
+from collections import deque
 
 BATCH_SIZE = 32
 EPSILON = 0.9
@@ -38,7 +39,9 @@ class NATURE_DQN(object):
         self.target_replace_iter = TARGET_REPLACE_ITER
         self.learning_rate = LR
 
-        self.memory = np.zeros((self.memory_size, self.state_dim * 2 + 2))
+        # self.memory = np.zeros((self.memory_size, self.state_dim * 2 + 2))
+
+        self.memory = deque()
 
         self.eval_net = NET(self.state_dim, self.action_dim)
         self.target_net = NET(self.state_dim, self.action_dim)
@@ -47,11 +50,21 @@ class NATURE_DQN(object):
         self.loss_func = nn.MSELoss()
 
     def store_memory(self, s, a, r, s_):
-        transition = np.hstack((s, [a, r], s_))
-        index = self.memory_counter % self.memory_size
-        self.memory[index, :] = transition
-        self.memory_counter += 1
-        if self.memory_counter > self.batch_size:
+        # transition = np.hstack((s, [a, r], s_))
+        # index = self.memory_counter % self.memory_size
+        # self.memory[index, :] = transition
+        # self.memory_counter += 1
+
+        one_hot_action = np.zeros(self.action_dim)
+        one_hot_action[a] = 1
+        self.memory.append((s, one_hot_action, r, s_))
+        if len(self.memory) > self.memory_size:
+            self.memory.popleft()
+
+        # if self.memory_counter > self.batch_size:
+        #     self.learn()
+
+        if len(self.memory) > self.batch_size:
             self.learn()
 
     def learn(self):
@@ -59,16 +72,30 @@ class NATURE_DQN(object):
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.learning_step_count += 1
 
-        sample_index = np.random.choice(self.memory_size, self.batch_size)
-        b_memory = self.memory[sample_index, :]
-        b_s = Variable(torch.FloatTensor(b_memory[:,:self.state_dim]))
-        b_a = Variable(torch.LongTensor(b_memory[:,self.state_dim:self.state_dim+1].astype(int)))
-        b_r = Variable(torch.FloatTensor(b_memory[:,self.state_dim+1:self.state_dim+2]))
-        b_s_ = Variable(torch.FloatTensor(b_memory[:,-self.state_dim:]))
+        # sample_index = np.random.choice(self.memory_size, self.batch_size)
+        # b_memory = self.memory[sample_index, :]
+        # b_s = Variable(torch.FloatTensor(b_memory[:,:self.state_dim]))
+        # b_a = Variable(torch.LongTensor(b_memory[:,self.state_dim:self.state_dim+1].astype(int)))
+        # b_r = Variable(torch.FloatTensor(b_memory[:,self.state_dim+1:self.state_dim+2]))
+        # b_s_ = Variable(torch.FloatTensor(b_memory[:,-self.state_dim:]))
+        #
+        # q_eval = self.eval_net(b_s).gather(1,b_a)
+        # q_next = self.target_net(b_s_).detach()
+        # q_target = b_r + self.gamma*q_next.max(1)[0].view(self.batch_size,1)
 
-        q_eval = self.eval_net(b_s).gather(1,b_a)
-        q_next = self.target_net(b_s_).detach()
-        q_target = b_r + self.gamma*q_next.max(1)[0].view(self.batch_size,1)
+        mini_batch = random.sample(self.memory, self.batch_size)
+        b_s = [i[0] for i in mini_batch]
+        b_a = [i[1] for i in mini_batch]
+        b_r = [i[2] for i in mini_batch]
+        b_s_ = [i[3] for i in mini_batch]
+
+        b_s = Variable(torch.FloatTensor(b_s))
+        b_a = Variable(torch.FloatTensor(b_a))
+        b_r = Variable(torch.FloatTensor(b_r))
+        b_s_ = Variable(torch.FloatTensor(b_s_))
+        q_eval = (self.eval_net.forward(b_s) * b_a).sum(1)
+        q_next = self.target_net.forward(b_s_).detach()
+        q_target = b_r + self.gamma*q_next.max(1)[0]
 
         loss = self.loss_func(q_eval, q_target)
         self.optimizer.zero_grad()
