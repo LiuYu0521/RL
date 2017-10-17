@@ -1,7 +1,10 @@
 import gym
 from NATURE_DQN import NATURE_DQN
+from DOUBLE_DQN import DOUBLE_DQN
+
 
 ENV_NAME = 'CartPole-v0'
+# ENV_NAME = 'Pendulum-v0'
 EPISODE = 5000
 STEP_LIMIT = 500
 TEST = 10
@@ -9,7 +12,7 @@ TEST = 10
 def main():
     env = gym.make(ENV_NAME)
     env = env.unwrapped
-    agent = NATURE_DQN(env)
+    agent = DOUBLE_DQN(env)
 
     for episode in range(EPISODE):
         s = env.reset()
@@ -28,7 +31,7 @@ def main():
             if done:
                 break
 
-        if episode % 100 == 0:
+        if episode % 1 == 0:
             total_reward = 0
 
             for i in range(TEST):
