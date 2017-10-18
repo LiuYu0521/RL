@@ -1,10 +1,11 @@
 import gym
 from NATURE_DQN import NATURE_DQN
 from DOUBLE_DQN import DOUBLE_DQN
+from DUELING_DQN import DUELING_DQN
 
 
 ENV_NAME = 'CartPole-v0'
-# ENV_NAME = 'Pendulum-v0'
+# ENV_NAME = 'MountainCar-v0'
 EPISODE = 5000
 STEP_LIMIT = 500
 TEST = 10
@@ -12,7 +13,7 @@ TEST = 10
 def main():
     env = gym.make(ENV_NAME)
     env = env.unwrapped
-    agent = DOUBLE_DQN(env)
+    agent = DUELING_DQN(env)
 
     for episode in range(EPISODE):
         s = env.reset()
